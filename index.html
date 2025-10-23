@@ -20,14 +20,34 @@
         .sidebar-gradient {
             background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
         }
+        
+        /* Hamburger Animation */
+        .hamburger-active .hamburger-line:nth-child(1) {
+            transform: rotate(45deg) translate(5px, 5px);
+        }
+        .hamburger-active .hamburger-line:nth-child(2) {
+            opacity: 0;
+        }
+        .hamburger-active .hamburger-line:nth-child(3) {
+            transform: rotate(-45deg) translate(7px, -6px);
+        }
     </style>
 </head>
 <body class="gradient-bg min-h-full">
     <div class="flex h-full">
+        <!-- Mobile Menu Button -->
+        <button id="mobileMenuBtn" class="fixed top-4 left-4 z-50 md:hidden bg-blue-600 text-white p-3 rounded-lg shadow-lg hover:bg-blue-700 transition-colors">
+            <div class="w-6 h-6 flex flex-col justify-center items-center">
+                <span class="hamburger-line block w-6 h-0.5 bg-white mb-1 transition-all duration-300"></span>
+                <span class="hamburger-line block w-6 h-0.5 bg-white mb-1 transition-all duration-300"></span>
+                <span class="hamburger-line block w-6 h-0.5 bg-white transition-all duration-300"></span>
+            </div>
+        </button>
+
         <!-- Sidebar -->
-        <div class="w-64 sidebar-gradient shadow-lg">
+        <div id="sidebar" class="w-64 sidebar-gradient shadow-lg transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out fixed md:relative z-40 h-full">
             <div class="p-6">
-                <h1 class="text-2xl font-bold text-blue-800 mb-8">🍜 ระบบร้านอาหาร<br>พะเยาราม</h1>
+                <h1 class="text-2xl font-bold text-blue-800 mb-8 mt-12 md:mt-0">🍜 ระบบร้านอาหาร<br>พะเยาราม</h1>
                 <nav class="space-y-3">
                     <button onclick="showPage('dashboard')" class="w-full text-left px-4 py-3 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors">
                         🏠 หน้าแรก
@@ -38,15 +58,18 @@
                     <button onclick="showPage('payment')" class="w-full text-left px-4 py-3 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors">
                         💸 ชำระเงิน
                     </button>
-                    <button onclick="showPage('report')" class="w-full text-left px-4 py-3 rounded-lg bg-green-500 text-white hover:bg-green-600 transition-colors">
+                    <button onclick="showReportPage()" class="w-full text-left px-4 py-3 rounded-lg bg-green-500 text-white hover:bg-green-600 transition-colors">
                         📊 รายงานยอดขาย
                     </button>
                 </nav>
             </div>
         </div>
 
+        <!-- Mobile Overlay -->
+        <div id="mobileOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden hidden"></div>
+
         <!-- Main Content -->
-        <div class="flex-1 p-6">
+        <div class="flex-1 p-6 md:p-6 pt-20 md:pt-6">
             <!-- Dashboard Page -->
             <div id="dashboard" class="page">
                 <h2 class="text-3xl font-bold text-blue-800 mb-6">📊 Dashboard</h2>
@@ -210,7 +233,66 @@
             loadProducts();
             updateDashboard();
             initCharts();
+            initMobileMenu();
         });
+
+        // Mobile menu functionality
+        function initMobileMenu() {
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const sidebar = document.getElementById('sidebar');
+            const mobileOverlay = document.getElementById('mobileOverlay');
+            
+            mobileMenuBtn.addEventListener('click', toggleMobileMenu);
+            mobileOverlay.addEventListener('click', closeMobileMenu);
+            
+            // Close menu when clicking on navigation items on mobile
+            const navButtons = sidebar.querySelectorAll('button');
+            navButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    if (window.innerWidth < 768) {
+                        closeMobileMenu();
+                    }
+                });
+            });
+        }
+
+        function toggleMobileMenu() {
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const sidebar = document.getElementById('sidebar');
+            const mobileOverlay = document.getElementById('mobileOverlay');
+            
+            const isOpen = sidebar.classList.contains('translate-x-0');
+            
+            if (isOpen) {
+                closeMobileMenu();
+            } else {
+                openMobileMenu();
+            }
+        }
+
+        function openMobileMenu() {
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const sidebar = document.getElementById('sidebar');
+            const mobileOverlay = document.getElementById('mobileOverlay');
+            
+            sidebar.classList.remove('-translate-x-full');
+            sidebar.classList.add('translate-x-0');
+            mobileOverlay.classList.remove('hidden');
+            mobileMenuBtn.classList.add('hamburger-active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeMobileMenu() {
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const sidebar = document.getElementById('sidebar');
+            const mobileOverlay = document.getElementById('mobileOverlay');
+            
+            sidebar.classList.remove('translate-x-0');
+            sidebar.classList.add('-translate-x-full');
+            mobileOverlay.classList.add('hidden');
+            mobileMenuBtn.classList.remove('hamburger-active');
+            document.body.style.overflow = '';
+        }
 
         // Page navigation
         function showPage(pageId) {
@@ -256,6 +338,41 @@
                         showConfirmButton: false
                     }).then(() => {
                         showPage('addProduct');
+                    });
+                }
+            });
+        }
+
+        // Show Report page with password protection
+        function showReportPage() {
+            Swal.fire({
+                title: '🔐 ใส่รหัสผ่าน',
+                text: 'กรุณาใส่รหัสผ่านเพื่อเข้าสู่หน้ารายงานยอดขาย',
+                input: 'password',
+                inputPlaceholder: 'รหัสผ่าน',
+                showCancelButton: true,
+                confirmButtonText: 'ยืนยัน',
+                cancelButtonText: 'ยกเลิก',
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#6b7280',
+                inputValidator: (value) => {
+                    if (!value) {
+                        return 'กรุณาใส่รหัสผ่าน';
+                    }
+                    if (value !== 'pyr054411111') {
+                        return 'รหัสผ่านไม่ถูกต้อง';
+                    }
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'เข้าสู่ระบบสำเร็จ!',
+                        text: 'ยินดีต้อนรับสู่หน้ารายงานยอดขาย',
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(() => {
+                        showPage('report');
                     });
                 }
             });
@@ -846,5 +963,5 @@
             }, 10000);
         }
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'992d9256c40ea1b7',t:'MTc2MTE4NDEwMS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'992da09f5491a1b7',t:'MTc2MTE4NDY4Ni4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
