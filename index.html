@@ -21,7 +21,20 @@
             background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
         }
         
-
+        .loading-indicator {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
 
         @media (min-width: 768px) {
             .sidebar-desktop {
@@ -37,9 +50,6 @@
 </head>
 <body class="gradient-bg min-h-full">
     <div class="flex h-full">
-
-
-
 
         <!-- Sidebar -->
         <div id="sidebar" class="w-64 sidebar-gradient shadow-lg transition-transform duration-300 ease-in-out relative z-40 h-full sidebar-desktop">
@@ -69,7 +79,16 @@
         <div id="mainContent" class="flex-1 p-6 transition-all duration-300 main-content-desktop">
             <!-- Dashboard Page -->
             <div id="dashboard" class="page">
-                <h2 class="text-3xl font-bold text-blue-800 mb-6">📊 Dashboard</h2>
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-3xl font-bold text-blue-800">📊 Dashboard</h2>
+                    <div class="flex items-center space-x-2">
+                        <div id="dashboardLoadingIndicator" class="loading-indicator hidden"></div>
+                        <span id="lastUpdateTime" class="text-sm text-gray-600"></span>
+                        <button onclick="refreshDashboard()" class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-sm">
+                            🔄 รีเฟรช
+                        </button>
+                    </div>
+                </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     <div class="card-gradient p-6 rounded-lg shadow-md">
                         <h3 class="text-lg font-semibold text-gray-700 mb-2">💰 ยอดขายวันนี้</h3>
@@ -231,6 +250,17 @@
             updateDashboard();
             initCharts();
             initMobileMenu();
+            
+            // Auto load data from Google Sheet on startup
+            autoLoadFromGoogleSheet('products');
+            autoLoadFromGoogleSheet('sales');
+            
+            // Set up periodic refresh for dashboard (every 5 minutes)
+            setInterval(() => {
+                if (document.getElementById('dashboard').classList.contains('hidden') === false) {
+                    refreshDashboard();
+                }
+            }, 300000); // 5 minutes
         });
 
         // Initialize menu
@@ -249,7 +279,36 @@
                 displayMenuItems();
             } else if (pageId === 'report') {
                 updateReport();
+            } else if (pageId === 'dashboard') {
+                // Auto refresh dashboard data from Google Sheet
+                refreshDashboard();
             }
+        }
+
+        // Refresh dashboard function
+        function refreshDashboard() {
+            const indicator = document.getElementById('dashboardLoadingIndicator');
+            indicator.classList.remove('hidden');
+            
+            // Load fresh data from Google Sheet
+            autoLoadFromGoogleSheet('sales');
+            
+            // Update dashboard after a short delay
+            setTimeout(() => {
+                updateDashboard();
+                indicator.classList.add('hidden');
+                updateLastUpdateTime();
+            }, 2000);
+        }
+
+        // Update last update time
+        function updateLastUpdateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('th-TH', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            document.getElementById('lastUpdateTime').textContent = `อัพเดทล่าสุด: ${timeString}`;
         }
 
         // Show Add Product page with password protection
@@ -1015,5 +1074,5 @@
             }, 10000);
         }
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'992eca00704f89a9',t:'MTc2MTE5Njg2Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'992f10b531768955',t:'MTc2MTE5OTc2My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
