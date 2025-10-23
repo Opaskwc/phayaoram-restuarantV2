@@ -317,6 +317,8 @@
                         showConfirmButton: false
                     }).then(() => {
                         showPage('report');
+                        // Auto load data from Google Sheet
+                        autoLoadFromGoogleSheet('sales');
                     });
                 }
             });
@@ -808,6 +810,70 @@
             }, 10000);
         }
 
+        // Auto load function (silent)
+        function autoLoadFromGoogleSheet(type) {
+            // JSONP request to Google Apps Script (silent load)
+            const script = document.createElement('script');
+            const callbackName = 'autoLoadCallback_' + Date.now();
+            
+            window[callbackName] = function(response) {
+                document.head.removeChild(script);
+                delete window[callbackName];
+                
+                if (response.success && response.data && response.data.length > 0) {
+                    if (type === 'products') {
+                        products = response.data;
+                        localStorage.setItem('products', JSON.stringify(products));
+                        loadProducts();
+                        displayMenuItems();
+                    } else if (type === 'sales') {
+                        // Merge with local data, keeping the most recent
+                        const mergedSales = mergeSalesData(sales, response.data);
+                        sales = mergedSales;
+                        localStorage.setItem('sales', JSON.stringify(sales));
+                        updateDashboard();
+                        updateReport();
+                    }
+                } else {
+                    console.log('Auto load: No data found or failed');
+                }
+            };
+
+            const params = new URLSearchParams({
+                callback: callbackName,
+                action: 'load',
+                type: type
+            });
+
+            script.src = `https://script.google.com/macros/s/AKfycbwpbYhxQlytmePrpBkbumN_V8E8DqJvZcA2caUNG60dhHFbEYEr60mPTe8DS7IEHkUVuA/exec?${params}`;
+            document.head.appendChild(script);
+
+            // Timeout handling (silent)
+            setTimeout(() => {
+                if (window[callbackName]) {
+                    document.head.removeChild(script);
+                    delete window[callbackName];
+                    console.log('Auto load timeout');
+                }
+            }, 10000);
+        }
+
+        // Merge sales data function
+        function mergeSalesData(localSales, remoteSales) {
+            const merged = [...localSales];
+            const localIds = new Set(localSales.map(sale => sale.id));
+            
+            // Add remote sales that don't exist locally
+            remoteSales.forEach(remoteSale => {
+                if (!localIds.has(remoteSale.id)) {
+                    merged.push(remoteSale);
+                }
+            });
+            
+            // Sort by date (newest first)
+            return merged.sort((a, b) => new Date(b.date) - new Date(a.date));
+        }
+
         // Google Sheets integration
         function saveToGoogleSheet(type) {
             Swal.fire({
@@ -949,5 +1015,5 @@
             }, 10000);
         }
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'992dbc3f62038957',t:'MTc2MTE4NTgxNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'992eca00704f89a9',t:'MTc2MTE5Njg2Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
